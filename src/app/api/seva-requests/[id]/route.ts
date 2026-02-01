@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const fakeRequests = [
-  { id: 1, status: 'pending' },
-  { id: 2, status: 'approved' }
-];
+import { supabase } from '@/lib/supabase';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = parseInt(params.id);
-  
-  // Fake approve (always approves)
-  const updated = fakeRequests.map(req => 
-    req.id === id ? { ...req, status: 'approved' } : req
-  );
-  
+  const { id } = params;
+  const { action } = await request.json();
+
+  const { error } = await supabase
+    .from('seva_requests')
+    .update({ status: action })
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }
