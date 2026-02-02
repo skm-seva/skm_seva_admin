@@ -1,12 +1,7 @@
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { redirect } from "next/navigation";
 
-export default async function Home() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('seva_admin_token');
-  
-  if (token) {
-    redirect('/dashboard/seva-requests');
-  }
-  redirect('/login');
+export default function Home() {
+  // Until we add server-side session reading,
+  // always redirect to login
+  redirect("/login");
 }
