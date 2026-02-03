@@ -32,6 +32,10 @@ export async function POST(req: Request) {
       query = query.eq("phone", phone.trim());
     }
 
+    // if (otp) {
+    //   query = query.eq("otp", otp.trim());
+    // }
+
     const { data: admin, error } = await query.single();
 
     if (error || !admin || !admin.is_active) {

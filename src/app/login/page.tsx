@@ -60,6 +60,7 @@ export default function Login() {
       body: JSON.stringify({
         email: loginType === 'email' ? email : null,
         phone: loginType === 'phone' ? phoneNumber : null,
+        //do it
         otp,
         pin: securityPin,
       }),
