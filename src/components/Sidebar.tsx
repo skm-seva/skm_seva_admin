@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  
 
   const menuItems = [
     { 
@@ -12,22 +13,36 @@ export default function Sidebar() {
       label: 'Seva Requests', 
       icon: 'clipboard-document-list'
     },
+    {
+  href: '/dashboard/organisers',
+  label: 'Organisers',
+  icon: 'user-group'
+},
+
+    {
+  href: '/dashboard/users',
+  label: 'Users',
+  icon: 'users'
+},
+
     { 
       href: '/dashboard/attendance', 
       label: 'Attendance', 
       icon: 'users'
     },
-    { 
-      href: '/dashboard/admins', 
-      label: 'Admins', 
-      icon: 'user-group'
-    },
+   
   ];
 
-  const handleLogout = () => {
-    document.cookie = 'seva_admin_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  const handleLogout = async () => {
+  try {
+    await fetch('/api/admin/logout', {
+      method: 'POST',
+    });
+  } finally {
     router.push('/login');
-  };
+  }
+};
+
 
   // Heroicons SVG components (professional line icons)
   const Icons = {
