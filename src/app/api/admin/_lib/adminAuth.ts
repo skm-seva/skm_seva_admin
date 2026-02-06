@@ -1,25 +1,48 @@
-// src/app/api/admin/_lib/adminAuth.ts
-import { cookies } from 'next/headers';
-import { supabaseAdmin } from './supabaseAdmin';
+import { cookies } from "next/headers";
+import { supabaseAdmin } from "./supabaseAdmin";
+
+type AdminUser = {
+  id: string;
+  email: string;
+  is_active: boolean;
+};
+
+type AdminSession = {
+  id: string;
+  expires_at: string;
+  admin_users: AdminUser | null;
+};
 
 export async function requireAdmin() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('seva_admin_token')?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get("seva_admin_token")?.value;
 
   if (!token) {
-    throw new Error('UNAUTHORIZED');
+    throw new Error("UNAUTHORIZED");
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('admin_users')
-    .select('*')
-    .eq('session_token', token)
-    .eq('is_active', true)
-    .single();
+  const { data: session } = await supabaseAdmin
+    .from("admin_sessions")
+    .select(`
+      id,
+      expires_at,
+      admin_users (
+        id,
+        email,
+        is_active
+      )
+    `)
+    .eq("id", token)
+    .single<AdminSession>();
 
-  if (error || !data) {
-    throw new Error('UNAUTHORIZED');
+  if (
+    !session ||
+    new Date(session.expires_at) < new Date() ||
+    !session.admin_users ||
+    !session.admin_users.is_active
+  ) {
+    throw new Error("UNAUTHORIZED");
   }
 
-  return data; // admin row
+  return session.admin_users;
 }

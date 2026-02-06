@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import EmptyState from '@/components/ui/EmptyState';
 import LoadingState from '@/components/ui/LoadingState';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import UsersTable from './components/UsersTable';
 
 type User = {
   id: string;
@@ -15,31 +15,50 @@ type User = {
   participation_count: number;
 };
 
+const DISTRICTS = [
+  'Gangtok',
+  'Namchi',
+  'Mangan',
+  'Gyalshing',
+  'Pakyong',
+];
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadUsers() {
-      try {
-        const res = await fetch('/api/admin/users');
+  // filters
+  const [district, setDistrict] = useState('');
+  const [search, setSearch] = useState('');
 
-        if (!res.ok) {
-          setUsers([]);
-          return;
-        }
+  async function loadUsers() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (district) params.set('district', district);
+      if (search) params.set('search', search);
 
-        const data = await res.json();
-        setUsers(data);
-      } catch {
+      const res = await fetch(
+        `/api/admin/users?${params.toString()}`
+      );
+
+      if (!res.ok) {
         setUsers([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    }
 
+      const data = await res.json();
+      setUsers(data);
+    } catch {
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     loadUsers();
-  }, []);
+  }, [district]);
 
   return (
     <div className="p-8 space-y-6">
@@ -56,54 +75,71 @@ export default function UsersPage() {
         ]}
       />
 
+      {/* Filters */}
+      <div className="bg-white border rounded-xl p-4 flex flex-wrap gap-4">
+        {/* Search */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Search
+          </label>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') loadUsers();
+            }}
+            placeholder="Name, phone, or email"
+            className="border rounded-lg px-3 py-2 text-sm w-64"
+          />
+        </div>
+
+        {/* District */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            District
+          </label>
+          <select
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            className="border rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            <option value="">All districts</option>
+            {DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-end gap-2">
+          <button
+            onClick={loadUsers}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Search
+          </button>
+
+          {(district || search) && (
+            <button
+              onClick={() => {
+                setDistrict('');
+                setSearch('');
+              }}
+              className="px-4 py-2 text-sm font-medium rounded-lg border hover:bg-gray-50"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Content */}
       {loading ? (
         <LoadingState label="Loading users…" />
-      ) : users.length === 0 ? (
-        <EmptyState
-          title="No users found"
-          description="No registered citizens are available at this time."
-        />
       ) : (
-        <div className="overflow-x-auto bg-white border rounded-xl">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600">
-              <tr>
-                <th className="px-4 py-3 text-left">Name</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">District</th>
-                <th className="px-4 py-3 text-center">
-                  Participation
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr
-                  key={u.id}
-                  className="border-t hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium">
-                    {u.full_name}
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.phone}
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.email}
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.district}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {u.participation_count}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <UsersTable users={users} />
       )}
     </div>
   );

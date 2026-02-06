@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import EmptyState from '@/components/ui/EmptyState';
 import LoadingState from '@/components/ui/LoadingState';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
+import OrganisersTable from './components/OrganisersTable';
 
 type Organiser = {
   id: string;
@@ -18,31 +19,52 @@ type Organiser = {
   total_events: number;
 };
 
+const DISTRICTS = [
+  'Gangtok',
+  'Namchi',
+  'Mangan',
+  'Gyalshing',
+  'Pakyong',
+];
+
 export default function OrganisersPage() {
   const [organisers, setOrganisers] = useState<Organiser[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadOrganisers() {
-      try {
-        const res = await fetch('/api/admin/organisers');
+  // filters
+  const [district, setDistrict] = useState('');
+  const [status, setStatus] = useState<
+    '' | 'pending' | 'approved' | 'rejected'
+  >('');
 
-        if (!res.ok) {
-          setOrganisers([]);
-          return;
-        }
+  async function loadOrganisers() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (district) params.set('district', district);
+      if (status) params.set('status', status);
 
-        const data = await res.json();
-        setOrganisers(data);
-      } catch {
+      const res = await fetch(
+        `/api/admin/organisers?${params.toString()}`
+      );
+
+      if (!res.ok) {
         setOrganisers([]);
-      } finally {
-        setLoading(false);
+        return;
       }
-    }
 
+      const data = await res.json();
+      setOrganisers(data);
+    } catch {
+      setOrganisers([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     loadOrganisers();
-  }, []);
+  }, [district, status]);
 
   return (
     <div className="p-8 space-y-6">
@@ -59,85 +81,69 @@ export default function OrganisersPage() {
         ]}
       />
 
+      {/* Filters */}
+      <div className="bg-white border rounded-xl p-4 flex flex-wrap gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            District
+          </label>
+          <select
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            className="border rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            <option value="">All districts</option>
+            {DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Status
+          </label>
+          <select
+            value={status}
+            onChange={(e) =>
+              setStatus(e.target.value as any)
+            }
+            className="border rounded-lg px-3 py-2 text-sm bg-white"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+
+        {(district || status) && (
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setDistrict('');
+                setStatus('');
+              }}
+              className="px-3 py-2 text-sm font-medium rounded-lg border hover:bg-gray-50"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Content */}
       {loading ? (
         <LoadingState label="Loading organisers…" />
       ) : organisers.length === 0 ? (
         <EmptyState
           title="No organisers found"
-          description="No registered organisers are available at this time."
+          description="Try adjusting filters or check back later."
         />
       ) : (
-        <div className="overflow-x-auto bg-white border rounded-xl">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600">
-              <tr>
-                <th className="px-4 py-3 text-left">
-                  Organisation
-                </th>
-                <th className="px-4 py-3">
-                  Type
-                </th>
-                <th className="px-4 py-3">
-                  District
-                </th>
-                <th className="px-4 py-3">
-                  Contact
-                </th>
-                <th className="px-4 py-3">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-center">
-                  Events
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {organisers.map((o) => (
-                <tr
-                  key={o.id}
-                  className="border-t hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium">
-                    {o.name}
-                  </td>
-                  <td className="px-4 py-3">
-                    {o.type}
-                  </td>
-                  <td className="px-4 py-3">
-                    {o.district}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="font-medium">
-                        {o.contact_name}
-                      </div>
-                      <div className="text-gray-500 text-xs">
-                        {o.phone}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        o.verification_status === 'approved'
-                          ? 'bg-green-100 text-green-700'
-                          : o.verification_status === 'rejected'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      {o.verification_status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {o.total_events}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <OrganisersTable organisers={organisers} />
       )}
     </div>
   );

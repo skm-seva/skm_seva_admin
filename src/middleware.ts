@@ -2,15 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get("seva_admin_session")?.value;
+  const token = req.cookies.get("seva_admin_token")?.value;
 
-  // 🔒 No session cookie → login
   if (!token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // ✅ Cookie exists → allow request
-  // (JWT verification happens server-side)
   return NextResponse.next();
 }
 
